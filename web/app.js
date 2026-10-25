@@ -3656,8 +3656,14 @@ async function boot() {
     state.signupEnabled = status.signup_enabled;
     const buildInfo = document.querySelector("#build-info");
     if (buildInfo) {
-      const built = status.built ? ` · built ${status.built.slice(0, 10)}` : "";
-      buildInfo.textContent = `Clack Notes · ${status.version || "dev"}${built}`;
+      buildInfo.textContent = `Clack Notes · ${status.version || "dev"}`;
+      if (status.built) {
+        // Own line in the side panel, joined with " · " on phones (see .build-date).
+        const date = document.createElement("span");
+        date.className = "build-date";
+        date.textContent = `built ${status.built.slice(0, 10)}`;
+        buildInfo.append(date);
+      }
     }
     if (state.setupRequired) {
       showAuthMode("setup");

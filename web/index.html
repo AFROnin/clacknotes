@@ -8,7 +8,7 @@
     <!-- Home screen icons: round for Android shortcuts, plus an adaptive version the launcher shapes itself. -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=74" />
+    <link rel="stylesheet" href="/styles.css?v=75" />
   </head>
   <body>
     <section id="auth-screen" class="auth-screen">
@@ -234,6 +234,7 @@
             <button class="settings-nav-button" data-settings-section="security" type="button">Security</button>
             <button id="admin-section-button" class="settings-nav-button" data-settings-section="admin" type="button" hidden>Admin</button>
             <button id="users-section-button" class="settings-nav-button" data-settings-section="users" type="button" hidden>Users</button>
+            <p id="build-info" class="build-info"></p>
           </nav>
 
           <div class="settings-content">
@@ -337,8 +338,6 @@
                   <option value="last">Last used note</option>
                 </select>
               </label>
-
-              <p id="build-info" class="settings-note build-info"></p>
             </section>
 
             <section id="settings-section-shortcuts" class="settings-section" hidden>
@@ -510,7 +509,7 @@
     </section>
 
     <script src="/merge.js?v=1"></script>
-    <script src="/app.js?v=75"></script>
+    <script src="/app.js?v=76"></script>
     <script src="/console-typewriter.js?v=56"></script>
   </body>
 </html>

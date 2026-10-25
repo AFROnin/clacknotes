@@ -2197,8 +2197,8 @@ textarea {
 }
 
 .settings-nav {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   padding: 10px;
   border-right: 1px solid var(--border);
@@ -2253,10 +2253,18 @@ textarea {
   line-height: 1.5;
 }
 
-/* Which build is running, at the bottom of Appearance. */
+/* Which build is running, pinned to the bottom of the settings side panel. */
 .build-info {
-  margin-top: 8px;
-  font-size: 12px;
+  margin: auto 0 0;
+  padding: 10px 10px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.build-date {
+  display: block;
 }
 
 .security-actions {
@@ -2765,9 +2773,23 @@ textarea {
   }
 
   .settings-nav {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     border-right: 0;
     border-bottom: 1px solid var(--border);
+  }
+
+  .build-info {
+    grid-column: 1 / -1;
+    padding-top: 4px;
+  }
+
+  .build-date {
+    display: inline;
+  }
+
+  .build-date::before {
+    content: " · ";
   }
 
   .schedule-grid {
