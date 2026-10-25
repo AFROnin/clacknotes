@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Clack Notes</title>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <!-- Home screen icons: round for Android shortcuts, plus an adaptive version the launcher shapes itself. -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/styles.css?v=74" />
+  </head>
+  <body>
+    <section id="auth-screen" class="auth-screen">
+      <div class="auth-card">
+        <header class="auth-brand">
+          <img class="auth-mark" src="/favicon.png" alt="" aria-hidden="true" />
+          <div>
+            <h1>Clack Notes</h1>
+            <p id="auth-subtitle">Sign in to continue</p>
+          </div>
+        </header>
+
+        <form id="setup-form" class="auth-form" hidden>
+          <h2>Create first admin</h2>
+          <label>
+            Email
+            <input id="setup-email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="setup-password" type="password" autocomplete="new-password" minlength="12" required />
+          </label>
+          <button class="primary-button auth-submit" type="submit">Create admin</button>
+        </form>
+
+        <form id="login-form" class="auth-form">
+          <h2>Login</h2>
+          <label>
+            Email
+            <input id="login-email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="login-password" type="password" autocomplete="current-password" minlength="12" required />
+          </label>
+          <label id="login-totp-row" hidden>
+            Authenticator code
+            <input id="login-totp-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" />
+          </label>
+          <button class="primary-button auth-submit" type="submit">Login</button>
+          <button id="show-signup" class="link-button" type="button" hidden>Create account</button>
+        </form>
+
+        <form id="signup-form" class="auth-form" hidden>
+          <h2>Create account</h2>
+          <p id="invite-note" class="auth-note" hidden></p>
+          <label>
+            Email
+            <input id="signup-email" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="signup-password" type="password" autocomplete="new-password" minlength="12" required />
+          </label>
+          <button class="primary-button auth-submit" type="submit">Create account</button>
+          <button id="show-login" class="link-button" type="button">Back to login</button>
+        </form>
+
+        <p id="auth-error" class="auth-error" hidden></p>
+      </div>
+    </section>
+
+    <div class="app" id="app-shell" hidden>
+      <aside class="sidebar">
+        <header class="brand">
+          <div class="brand-main">
+            <img class="brand-mark" src="/favicon.png" alt="" aria-hidden="true" />
+            <div class="brand-copy">
+              <h1>Clack Notes</h1>
+              <p id="note-count">0 notes</p>
+            </div>
+          </div>
+        </header>
+
+        <label class="search">
+          <span>⌕</span>
+          <input id="search-input" type="search" placeholder="Search notes" />
+        </label>
+
+        <button id="new-button" class="primary-button" title="Clack A Note" aria-label="Clack A Note">
+          <span class="new-icon" aria-hidden="true">+</span>
+          <span class="new-label">Clack A Note</span>
+        </button>
+
+        <nav id="note-list" class="note-list" aria-label="Notes"></nav>
+
+        <button id="sidebar-toggle" class="sidebar-toggle" title="Minimize panel" aria-label="Minimize panel">
+          <svg class="sidebar-toggle-icon sidebar-toggle-collapse" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M10 4 6 8l4 4" />
+          </svg>
+          <svg class="sidebar-toggle-icon sidebar-toggle-expand" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m6 4 4 4-4 4" />
+          </svg>
+          <span class="sidebar-toggle-label">Minimize panel</span>
+        </button>
+
+        <footer class="sidebar-footer">
+          <div id="profile-shell" class="profile-shell">
+            <button id="profile-button" class="profile-button" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="profile-menu">
+              <svg class="profile-icon" viewBox="0 0 20 20" aria-hidden="true">
+                <circle cx="10" cy="6" r="3.1" />
+                <path d="M4.2 17c.6-3.1 2.7-5 5.8-5s5.2 1.9 5.8 5" />
+              </svg>
+              <span class="profile-label">Profile</span>
+            </button>
+            <div id="profile-menu" class="profile-menu" role="menu" hidden>
+              <button id="settings-button" class="profile-menu-item" type="button" role="menuitem">
+                <span class="settings-icon" aria-hidden="true"></span>
+                <span>Settings</span>
+              </button>
+              <button id="logout-button" class="profile-menu-item" type="button" role="menuitem">
+                <svg class="logout-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M8 2v6" />
+                  <path d="M4.4 4.5a5 5 0 1 0 7.2 0" />
+                </svg>
+                <span>Sign out</span>
+              </button>
+            </div>
+          </div>
+        </footer>
+      </aside>
+
+      <div id="sidebar-resizer" class="sidebar-resizer" role="separator" aria-orientation="vertical" title="Resize panel"></div>
+
+      <main class="workspace">
+        <header class="toolbar">
+          <div class="actions drawer-actions">
+            <button id="drawer-button" class="icon-button" type="button" title="Notes" aria-label="Show notes" aria-controls="note-list" aria-expanded="false">
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M6 7h12" />
+                <path d="M6 12h12" />
+                <path d="M6 17h12" />
+              </svg>
+            </button>
+          </div>
+          <div class="title-area">
+            <input id="title-input" class="title-input" aria-label="Note title" />
+            <div id="title-tags" class="title-tags" aria-label="Saved tags"></div>
+          </div>
+          <div class="actions">
+            <span id="status">Ready</span>
+            <button id="preview-button" class="icon-button preview-icon-button" title="Toggle preview" aria-label="Toggle preview">
+              <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                <circle class="eye-iris" cx="12" cy="12" r="4" />
+                <circle class="eye-pupil" cx="12" cy="12" r="1.7" />
+              </svg>
+            </button>
+            <button id="share-button" class="icon-button" title="Share note" aria-label="Share note" disabled>
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="17.5" cy="5.5" r="2.5" />
+                <circle cx="6.5" cy="12" r="2.5" />
+                <circle cx="17.5" cy="18.5" r="2.5" />
+                <path d="m8.7 10.7 6.6-3.9" />
+                <path d="m8.7 13.3 6.6 3.9" />
+              </svg>
+            </button>
+            <button id="import-button" class="icon-button" title="Import Markdown" aria-label="Import Markdown">
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M5 14.5v4h14v-4" />
+                <path d="M7 18.5h10" />
+                <path d="M12 5v10" />
+                <path d="m8.5 11.5 3.5 3.5 3.5-3.5" />
+              </svg>
+            </button>
+            <input id="import-input" class="visually-hidden" type="file" accept=".md,text/markdown,text/plain" />
+            <button id="delete-button" class="icon-button danger" title="Delete" aria-label="Delete note">
+              <svg class="action-icon delete-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 7h16" />
+                <path d="M9 7V4h6v3" />
+                <path d="M7 7l1 14h8l1-14" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+              </svg>
+            </button>
+            <button id="export-button" class="icon-button" title="Export Markdown" aria-label="Export Markdown">
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M5 14.5v4h14v-4" />
+                <path d="M7 18.5h10" />
+                <path d="M12 15V5" />
+                <path d="m8.5 8.5 3.5-3.5 3.5 3.5" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <div id="error" class="error" hidden></div>
+        <div id="conflict-bar" class="conflict-bar" role="alert" hidden>
+          <span>Someone changed the same lines while you were typing.</span>
+          <button id="conflict-keep" class="secondary-button" type="button">Keep mine</button>
+          <button id="conflict-theirs" class="secondary-button" type="button">Use theirs</button>
+        </div>
+
+        <section id="editor-grid" class="editor-grid">
+          <div class="editor-pane">
+            <div id="editor-line-numbers" class="editor-line-numbers" aria-hidden="true"></div>
+            <textarea id="body-input" spellcheck="true" placeholder="Write Markdown..."></textarea>
+            <div id="editor-focus-letters" class="editor-focus-letters" aria-hidden="true"></div>
+            <div id="editor-cursor" class="editor-cursor" aria-hidden="true"></div>
+            <div id="editor-list-overlay" class="editor-list-overlay"></div>
+          </div>
+          <div id="preview-resizer" class="preview-resizer" role="separator" aria-orientation="vertical" title="Resize preview"></div>
+          <article id="preview" class="preview">
+            <div class="preview-handle" aria-hidden="true"></div>
+            <div class="preview-label">Preview</div>
+            <div id="preview-content"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <section id="settings-modal" class="modal" hidden>
+      <div class="modal-panel">
+        <header>
+          <h2>Settings</h2>
+          <button id="settings-close" class="icon-button" title="Close">✓</button>
+        </header>
+
+        <div class="settings-layout">
+          <nav class="settings-nav" aria-label="Settings sections">
+            <button class="settings-nav-button active" data-settings-section="appearance" type="button">Appearance</button>
+            <button class="settings-nav-button" data-settings-section="shortcuts" type="button">Shortcuts</button>
+            <button class="settings-nav-button" data-settings-section="security" type="button">Security</button>
+            <button id="admin-section-button" class="settings-nav-button" data-settings-section="admin" type="button" hidden>Admin</button>
+            <button id="users-section-button" class="settings-nav-button" data-settings-section="users" type="button" hidden>Users</button>
+          </nav>
+
+          <div class="settings-content">
+            <section id="settings-section-appearance" class="settings-section active">
+              <label>
+                Theme
+                <select id="theme-select"></select>
+              </label>
+
+              <div class="settings-group" aria-label="Automatic theme schedule">
+                <h3>Automatic theme schedule</h3>
+                <div class="schedule-grid">
+                  <label>
+                    Sunrise time
+                    <input id="sunrise-time-input" type="time" />
+                  </label>
+                  <label>
+                    Sunrise theme
+                    <select id="sunrise-theme-select"></select>
+                  </label>
+                  <label>
+                    Sunset time
+                    <input id="sunset-time-input" type="time" />
+                  </label>
+                  <label>
+                    Sunset theme
+                    <select id="sunset-theme-select"></select>
+                  </label>
+                </div>
+              </div>
+
+              <label>
+                Editor font
+                <select id="font-input">
+                  <option value="system-sans">System Sans</option>
+                  <option value="system-mono">System Mono</option>
+                  <option value="serif">Serif</option>
+                  <option value="noto-sans">Noto Sans</option>
+                  <option value="dejavu-mono">DejaVu Sans Mono</option>
+                  <option value="courier-prime">Courier Prime</option>
+                  <option value="custom">Custom...</option>
+                </select>
+              </label>
+
+              <label id="custom-font-row" hidden>
+                Custom font family
+                <input id="custom-font-input" type="text" maxlength="80" placeholder="Fira Code" />
+              </label>
+
+              <label>
+                Editor font size
+                <span class="range-row">
+                  <input id="font-size-input" type="range" min="12" max="24" step="1" value="15" />
+                  <output id="font-size-value" for="font-size-input">15 px</output>
+                </span>
+              </label>
+
+              <label>
+                Code font size
+                <span class="range-row">
+                  <input id="code-font-size-input" type="range" min="11" max="22" step="1" value="14" />
+                  <output id="code-font-size-value" for="code-font-size-input">14 px</output>
+                </span>
+              </label>
+
+              <label>
+                Editor cursor
+                <select id="cursor-type-input">
+                  <option value="bar">Bar</option>
+                  <option value="block">Block</option>
+                  <option value="underline">Underline</option>
+                </select>
+              </label>
+
+              <label>
+                Tag pills
+                <select id="tag-pill-style-input">
+                  <option value="soft">Soft</option>
+                  <option value="outline">Ticket</option>
+                  <option value="solid">Block</option>
+                  <option value="mono">Minimal</option>
+                </select>
+              </label>
+
+              <div class="settings-group" aria-label="Writing focus effects">
+                <h3>Writing focus</h3>
+                <label class="toggle-row">
+                  <input id="editor-line-numbers-input" type="checkbox" />
+                  Show editor line numbers
+                </label>
+                <label class="toggle-row">
+                  <input id="focus-letter-effect-input" type="checkbox" />
+                  Magnify latest typed letter
+                </label>
+              </div>
+
+              <label>
+                On app start
+                <select id="start-note-input">
+                  <option value="new">New blank note</option>
+                  <option value="last">Last used note</option>
+                </select>
+              </label>
+
+              <p id="build-info" class="settings-note build-info"></p>
+            </section>
+
+            <section id="settings-section-shortcuts" class="settings-section" hidden>
+              <div class="shortcut-list" aria-label="Keyboard shortcuts">
+                <div class="shortcut-row">
+                  <span>Focus editor from title</span>
+                  <kbd>Tab</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Indent line or selection</span>
+                  <kbd>Tab</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Outdent line or selection</span>
+                  <kbd>Shift</kbd><kbd>Tab</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Move line or selection up</span>
+                  <kbd>Shift</kbd><kbd>Alt</kbd><kbd>↑</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Move line or selection down</span>
+                  <kbd>Shift</kbd><kbd>Alt</kbd><kbd>↓</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Duplicate line or selection</span>
+                  <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>D</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Toggle Zen mode</span>
+                  <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Z</kbd>
+                </div>
+                <div class="shortcut-row">
+                  <span>Close modal or dialog</span>
+                  <kbd>Esc</kbd>
+                </div>
+              </div>
+            </section>
+
+            <section id="settings-section-security" class="settings-section" hidden>
+              <div class="settings-group">
+                <h3>Two-factor authentication</h3>
+                <p id="totp-status" class="settings-note">Authenticator app not enabled.</p>
+                <div class="security-actions">
+                  <button id="totp-setup-button" class="secondary-button" type="button">Set up authenticator</button>
+                  <button id="totp-disable-open-button" class="danger-button" type="button" hidden>Disable authenticator</button>
+                </div>
+                <div id="totp-setup-panel" class="totp-panel" hidden>
+                  <div class="totp-setup-grid">
+                    <div class="totp-qr-surface" aria-label="Authenticator QR code">
+                      <div id="totp-qr-code" class="totp-qr-code"></div>
+                    </div>
+                    <div class="totp-fields">
+                      <label>
+                        Secret key
+                        <input id="totp-secret-output" type="text" readonly />
+                      </label>
+                      <label class="totp-uri-row">
+                        Setup URI
+                        <input id="totp-uri-output" type="text" readonly />
+                      </label>
+                      <label>
+                        Verification code
+                        <input id="totp-enable-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" />
+                      </label>
+                    </div>
+                  </div>
+                  <button id="totp-enable-button" class="secondary-button" type="button">Enable authenticator</button>
+                </div>
+                <div id="totp-disable-panel" class="totp-panel" hidden>
+                  <label>
+                    Password
+                    <input id="totp-disable-password" type="password" autocomplete="current-password" minlength="12" />
+                  </label>
+                  <label>
+                    Authenticator code
+                    <input id="totp-disable-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{6,8}" />
+                  </label>
+                  <button id="totp-disable-confirm-button" class="danger-button" type="button">Disable 2FA</button>
+                </div>
+              </div>
+            </section>
+
+            <section id="settings-section-admin" class="settings-section" hidden>
+              <div class="settings-group">
+                <h3>Signup</h3>
+                <label class="toggle-row">
+                  <input id="signup-enabled-input" type="checkbox" />
+                  Enable public signup
+                </label>
+              </div>
+
+              <div class="settings-group">
+                <h3>Invites</h3>
+                <div class="admin-inline">
+                  <label>
+                    Role
+                    <select id="invite-role-select">
+                      <option value="user">user</option>
+                      <option value="admin">admin</option>
+                    </select>
+                  </label>
+                  <button id="create-invite-button" class="secondary-button" type="button">Create invite</button>
+                </div>
+                <label id="invite-link-row" hidden>
+                  Invite link
+                  <input id="invite-link-output" type="text" readonly />
+                </label>
+                <div id="invite-list" class="admin-list"></div>
+              </div>
+            </section>
+
+            <section id="settings-section-users" class="settings-section" hidden>
+              <div class="settings-group">
+                <h3>Users</h3>
+                <div id="user-list" class="admin-list"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="delete-modal" class="modal" hidden>
+      <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+        <header>
+          <h2 id="delete-title">Delete note?</h2>
+        </header>
+        <p id="delete-message" class="confirm-message"></p>
+        <div class="modal-actions">
+          <button id="delete-cancel" class="secondary-button">Cancel</button>
+          <button id="delete-confirm" class="danger-button">Delete</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="share-modal" class="modal" hidden>
+      <div class="modal-panel confirm-panel share-panel" role="dialog" aria-modal="true" aria-labelledby="share-title">
+        <header>
+          <h2 id="share-title">Share note</h2>
+        </header>
+        <form id="share-form" class="share-form">
+          <input id="share-email" type="email" placeholder="Email of a Clack Notes user" autocomplete="off" required aria-label="Email" />
+          <select id="share-permission" aria-label="Permission">
+            <option value="edit">Can edit</option>
+            <option value="view">Can view</option>
+          </select>
+          <button class="primary-button share-submit" type="submit">Share</button>
+        </form>
+        <p id="share-error" class="share-error" hidden></p>
+        <ul id="share-list" class="share-list" aria-label="Shared with"></ul>
+        <div class="modal-actions">
+          <button id="share-close" class="secondary-button" type="button">Done</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="user-delete-modal" class="modal" hidden>
+      <div class="modal-panel confirm-panel" role="dialog" aria-modal="true" aria-labelledby="user-delete-title">
+        <header>
+          <h2 id="user-delete-title">Delete user?</h2>
+        </header>
+        <p id="user-delete-message" class="confirm-message"></p>
+        <div class="modal-actions">
+          <button id="user-delete-cancel" class="secondary-button">Cancel</button>
+          <button id="user-delete-confirm" class="danger-button">Delete</button>
+        </div>
+      </div>
+    </section>
+
+    <script src="/merge.js?v=1"></script>
+    <script src="/app.js?v=75"></script>
+    <script src="/console-typewriter.js?v=56"></script>
+  </body>
+</html>

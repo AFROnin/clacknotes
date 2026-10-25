@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+
+# Secrets and local settings: never commit these to a public repo.
+.env
+.env.*
+
+# Note databases and their backups (they live in data/, but stray copies happen).
+*.sqlite3
+*.sqlite3-*
+*.backup-*
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+
+# Original artwork: only the favicon and logo sources are kept in the repo.
+assets/*
+!assets/favicon-source.png
+!assets/logo.png

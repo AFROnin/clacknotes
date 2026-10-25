@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- Unraid Docker template for Clack Notes. Install it with the steps in README.md ("Install on Unraid"). -->
+<Container version="2">
+  <Name>clacknotes</Name>
+  <Repository>ghcr.io/afronin/clacknotes:latest</Repository>
+  <Registry>https://github.com/AFROnin/clacknotes/pkgs/container/clacknotes</Registry>
+  <Network>proxynet</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/AFROnin/clacknotes/issues</Support>
+  <Project>https://github.com/AFROnin/clacknotes</Project>
+  <Overview>Clack Notes: a retro, typewriter-inspired notes app. Markdown notes with tags, checklists, sharing between users and live sync, stored in SQLite.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/AFROnin/clacknotes/main/web/icon-512.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <Config Name="Web UI port" Target="8000" Default="8010" Mode="tcp" Description="Host port for the web UI. The app listens on 8000 inside the container." Type="Port" Display="always" Required="true" Mask="false">8010</Config>
+  <Config Name="Data" Target="/app/data" Default="/mnt/cache/appdata/clacknotes/data" Mode="rw" Description="Holds the SQLite database (notes.sqlite3). Prefer a cache-pool path (/mnt/cache/...) over /mnt/user/...: SQLite locking is slow on the /mnt/user layer. Back up this folder." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/clacknotes/data</Config>
+  <Config Name="Allowed hosts" Target="CLACK_ALLOWED_HOSTS" Default="" Mode="" Description="Every hostname or IP you open Clack Notes with, comma separated, no scheme or port, e.g. notes.example.com,192.168.1.10,tower. Requests with any other Host header are rejected." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="TOTP issuer" Target="CLACK_TOTP_ISSUER" Default="Clack Notes" Mode="" Description="Name shown in authenticator apps for two-factor sign-in." Type="Variable" Display="advanced" Required="false" Mask="false">Clack Notes</Config>
+  <Config Name="Sign-in attempts" Target="CLACK_AUTH_RATE_LIMIT_ATTEMPTS" Default="8" Mode="" Description="Failed sign-in attempts allowed per window before further attempts are refused." Type="Variable" Display="advanced" Required="false" Mask="false">8</Config>
+  <Config Name="Sign-in window (seconds)" Target="CLACK_AUTH_RATE_LIMIT_WINDOW_SECONDS" Default="300" Mode="" Description="Length of the sign-in rate-limit window, in seconds." Type="Variable" Display="advanced" Required="false" Mask="false">300</Config>
+</Container>
