@@ -2161,8 +2161,8 @@ textarea {
 
 #settings-modal .modal-panel {
   grid-template-rows: auto minmax(0, 1fr);
-  width: min(860px, 100%);
-  height: min(720px, calc(100dvh - 40px));
+  width: min(1080px, 100%);
+  height: min(820px, calc(100dvh - 40px));
 }
 
 .modal-panel header {
@@ -2227,6 +2227,36 @@ textarea {
   min-height: 0;
   overflow: auto;
   padding: 16px;
+  /* Layouts below follow the width of this pane, not the window (see @container settings). */
+  container: settings / inline-size;
+}
+
+.settings-section > *,
+.settings-group > * {
+  min-width: 0;
+}
+
+/* Appearance on wide panes: Theme and Writing on the left, Editor on the right. */
+@container settings (min-width: 700px) {
+  .settings-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "theme editor"
+      "writing editor";
+    align-items: start;
+  }
+
+  .theme-group {
+    grid-area: theme;
+  }
+
+  .editor-group {
+    grid-area: editor;
+  }
+
+  .writing-group {
+    grid-area: writing;
+  }
 }
 
 .settings-section {
@@ -2327,6 +2357,29 @@ textarea {
   gap: 12px;
 }
 
+.schedule-grid[hidden],
+.schedule-sun[hidden] {
+  display: none;
+}
+
+.schedule-sun {
+  display: grid;
+  gap: 8px;
+}
+
+/* "Use my location" on its own line, latitude and longitude side by side below it. */
+.schedule-location {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+}
+
+.schedule-location button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
 .toggle-row {
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -2362,8 +2415,39 @@ textarea {
   background: var(--bg);
 }
 
-.user-row {
-  grid-template-columns: minmax(0, 1fr) 112px auto auto auto;
+.user-email {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.user-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-panel .user-role {
+  width: 96px;
+}
+
+/* Narrow panes: address on top, its controls on the line below. */
+@container settings (max-width: 620px) {
+  .user-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  /* Role | enabled, then Save | Delete. */
+  .user-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .modal-panel .user-role {
+    width: 100%;
+  }
 }
 
 .admin-row small {
@@ -2390,6 +2474,8 @@ textarea {
 
 .modal-panel input,
 .modal-panel select {
+  /* Text inputs have a built-in minimum width; without this they overflow narrow columns. */
+  min-width: 0;
   min-height: 38px;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -2768,20 +2854,51 @@ textarea {
   }
 
 
+  /* Settings fill the phone screen; sections become a row of tabs above the content. */
+  #settings-modal {
+    padding: 0;
+  }
+
+  #settings-modal .modal-panel {
+    width: 100%;
+    height: 100dvh;
+    gap: 12px;
+    padding: 14px 12px calc(12px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: 0;
+  }
+
   .settings-layout {
     grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .settings-nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
 
+  .settings-nav-button {
+    width: auto;
+    min-height: 34px;
+    padding: 0 12px;
+  }
+
+  .settings-content {
+    padding: 12px;
+  }
+
+  .settings-group {
+    padding: 12px;
+  }
+
   .build-info {
-    grid-column: 1 / -1;
-    padding-top: 4px;
+    flex-basis: 100%;
+    padding: 2px 4px 0;
   }
 
   .build-date {

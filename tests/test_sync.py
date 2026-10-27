@@ -112,6 +112,12 @@ class MergeScriptTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
 
+    def test_sun_times(self) -> None:
+        result = subprocess.run(
+            ["node", str(ROOT / "tests" / "sun_test.js")], capture_output=True, text=True, timeout=60
+        )
+        self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

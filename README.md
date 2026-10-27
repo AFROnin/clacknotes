@@ -162,6 +162,9 @@ Proxy must send `X-Forwarded-Proto: https` so session cookie gets `Secure`.
 - Search title and body
 - Markdown textarea and preview
 - Theme setting: `plain`, `gruvbox`, `tokyonight`, `catppuccin`, `nord`
+- Automatic day/night theme: at fixed times, at the real sunrise and sunset
+  of your location (calculated in the browser, no external service), or with
+  the device's light/dark mode
 - Editor font setting
 - Import Markdown file
 - Export note as Markdown file

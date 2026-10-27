@@ -76,6 +76,9 @@ TAG_PILL_STYLES = {"soft", "outline", "solid", "mono"}
 ACTION_ICON_STYLES = {"key-01", "key-03", "key-07", "key-10"}
 # What opens when the app starts: a blank new note, or the note used last (last_note_id).
 START_NOTES = {"new", "last"}
+# How the theme switches between the sunrise (day) and sunset (night) themes: not at all, at fixed
+# times, at the real sunrise/sunset of sun_latitude/sun_longitude, or with the device's light/dark mode.
+THEME_SCHEDULES = {"off", "times", "sun", "system"}
 TIME_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
 TAG_SEARCH_RE = re.compile(r"^tag:([^\s]*)(?:\s+(.*))?$", re.IGNORECASE)
 # A tag only counts when it is the sole content of its line, e.g. "#todo".
@@ -98,6 +101,9 @@ DEFAULT_SETTINGS = {
     "sunrise_theme": "plain",
     "sunset_time": "",
     "sunset_theme": "nord-dark",
+    "theme_schedule": "off",
+    "sun_latitude": "",
+    "sun_longitude": "",
 }
 
 
@@ -221,6 +227,22 @@ def normalize_bool_setting(value: str | int | bool) -> str:
 def normalize_time(value: str | int) -> str:
     time = str(value).strip()
     return time if TIME_RE.fullmatch(time) else ""
+
+
+def normalize_theme_schedule(value: str) -> str:
+    value = str(value).strip()
+    return value if value in THEME_SCHEDULES else "off"
+
+
+def normalize_coordinate(value: str | float, limit: float) -> str:
+    # Two decimals (about 1 km) are plenty for sun times and don't pin down a home address.
+    try:
+        number = float(str(value).strip())
+    except ValueError:
+        return ""
+    if number != number or abs(number) > limit:
+        return ""
+    return f"{round(number, 2):.2f}"
 
 
 def inserted_id(cursor: sqlite3.Cursor, entity: str) -> int:
@@ -899,6 +921,15 @@ def get_settings(user_id: int) -> dict[str, str]:
         "sunrise_theme": normalize_theme(settings.get("sunrise_theme", "plain")),
         "sunset_time": normalize_time(settings.get("sunset_time", "")),
         "sunset_theme": normalize_theme(settings.get("sunset_theme", "nord-dark")),
+        # Accounts from before theme_schedule existed: fixed times were the only schedule.
+        "theme_schedule": normalize_theme_schedule(
+            settings.get(
+                "theme_schedule",
+                "times" if settings.get("sunrise_time") and settings.get("sunset_time") else "off",
+            )
+        ),
+        "sun_latitude": normalize_coordinate(settings.get("sun_latitude", ""), 90),
+        "sun_longitude": normalize_coordinate(settings.get("sun_longitude", ""), 180),
     }
 
 
@@ -998,6 +1029,21 @@ def update_settings(user_id: int, patch: dict[str, str | int | bool | None]) -> 
             conn.execute(
                 "INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, 'sunset_theme', ?)",
                 (user_id, sunset_theme),
+            )
+        if "theme_schedule" in patch and patch["theme_schedule"] is not None:
+            conn.execute(
+                "INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, 'theme_schedule', ?)",
+                (user_id, normalize_theme_schedule(str(patch["theme_schedule"]))),
+            )
+        if "sun_latitude" in patch and patch["sun_latitude"] is not None:
+            conn.execute(
+                "INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, 'sun_latitude', ?)",
+                (user_id, normalize_coordinate(patch["sun_latitude"], 90)),
+            )
+        if "sun_longitude" in patch and patch["sun_longitude"] is not None:
+            conn.execute(
+                "INSERT OR REPLACE INTO user_settings (user_id, key, value) VALUES (?, 'sun_longitude', ?)",
+                (user_id, normalize_coordinate(patch["sun_longitude"], 180)),
             )
     return get_settings(user_id)
 

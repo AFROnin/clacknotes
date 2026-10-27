@@ -8,7 +8,7 @@
     <!-- Home screen icons: round for Android shortcuts, plus an adaptive version the launcher shapes itself. -->
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="stylesheet" href="/styles.css?v=75" />
+    <link rel="stylesheet" href="/styles.css?v=76" />
   </head>
   <body>
     <section id="auth-screen" class="auth-screen">
@@ -238,89 +238,124 @@
           </nav>
 
           <div class="settings-content">
-            <section id="settings-section-appearance" class="settings-section active">
-              <label>
-                Theme
-                <select id="theme-select"></select>
-              </label>
+            <section id="settings-section-appearance" class="settings-section settings-columns active">
+              <div class="settings-group theme-group" aria-label="Theme">
+                <h3>Theme</h3>
+                <label>
+                  Current theme
+                  <select id="theme-select"></select>
+                </label>
 
-              <div class="settings-group" aria-label="Automatic theme schedule">
-                <h3>Automatic theme schedule</h3>
-                <div class="schedule-grid">
+                <label>
+                  Switch automatically
+                  <select id="theme-schedule-select">
+                    <option value="off">Off</option>
+                    <option value="times">At fixed times</option>
+                    <option value="sun">At sunrise and sunset</option>
+                    <option value="system">With the device's light/dark mode</option>
+                  </select>
+                </label>
+
+                <div id="schedule-times" class="schedule-grid" hidden>
                   <label>
-                    Sunrise time
+                    Day starts
                     <input id="sunrise-time-input" type="time" />
                   </label>
                   <label>
-                    Sunrise theme
+                    Night starts
+                    <input id="sunset-time-input" type="time" />
+                  </label>
+                </div>
+
+                <div id="schedule-sun" class="schedule-sun" hidden>
+                  <div class="schedule-location">
+                    <button id="sun-locate-button" class="secondary-button" type="button">Use my location</button>
+                    <label>
+                      Latitude
+                      <input id="sun-latitude-input" type="text" inputmode="decimal" placeholder="52.52" autocomplete="off" />
+                    </label>
+                    <label>
+                      Longitude
+                      <input id="sun-longitude-input" type="text" inputmode="decimal" placeholder="13.40" autocomplete="off" />
+                    </label>
+                  </div>
+                  <p id="sun-times-note" class="settings-note"></p>
+                </div>
+
+                <p id="schedule-system-note" class="settings-note" hidden>Follows this device's light or dark mode, so phones that switch at sunset do the same here.</p>
+
+                <div id="schedule-themes" class="schedule-grid" hidden>
+                  <label>
+                    Day theme
                     <select id="sunrise-theme-select"></select>
                   </label>
                   <label>
-                    Sunset time
-                    <input id="sunset-time-input" type="time" />
-                  </label>
-                  <label>
-                    Sunset theme
+                    Night theme
                     <select id="sunset-theme-select"></select>
                   </label>
                 </div>
               </div>
 
-              <label>
-                Editor font
-                <select id="font-input">
-                  <option value="system-sans">System Sans</option>
-                  <option value="system-mono">System Mono</option>
-                  <option value="serif">Serif</option>
-                  <option value="noto-sans">Noto Sans</option>
-                  <option value="dejavu-mono">DejaVu Sans Mono</option>
-                  <option value="courier-prime">Courier Prime</option>
-                  <option value="custom">Custom...</option>
-                </select>
-              </label>
+              <div class="settings-group editor-group" aria-label="Editor">
+                <h3>Editor</h3>
+                <label>
+                  Font
+                  <select id="font-input">
+                    <option value="system-sans">System Sans</option>
+                    <option value="system-mono">System Mono</option>
+                    <option value="serif">Serif</option>
+                    <option value="noto-sans">Noto Sans</option>
+                    <option value="dejavu-mono">DejaVu Sans Mono</option>
+                    <option value="courier-prime">Courier Prime</option>
+                    <option value="custom">Custom...</option>
+                  </select>
+                </label>
 
-              <label id="custom-font-row" hidden>
-                Custom font family
-                <input id="custom-font-input" type="text" maxlength="80" placeholder="Fira Code" />
-              </label>
+                <label id="custom-font-row" hidden>
+                  Custom font family
+                  <input id="custom-font-input" type="text" maxlength="80" placeholder="Fira Code" />
+                </label>
 
-              <label>
-                Editor font size
-                <span class="range-row">
-                  <input id="font-size-input" type="range" min="12" max="24" step="1" value="15" />
-                  <output id="font-size-value" for="font-size-input">15 px</output>
-                </span>
-              </label>
+                <label>
+                  Font size
+                  <span class="range-row">
+                    <input id="font-size-input" type="range" min="12" max="24" step="1" value="15" />
+                    <output id="font-size-value" for="font-size-input">15 px</output>
+                  </span>
+                </label>
 
-              <label>
-                Code font size
-                <span class="range-row">
-                  <input id="code-font-size-input" type="range" min="11" max="22" step="1" value="14" />
-                  <output id="code-font-size-value" for="code-font-size-input">14 px</output>
-                </span>
-              </label>
+                <label>
+                  Code font size
+                  <span class="range-row">
+                    <input id="code-font-size-input" type="range" min="11" max="22" step="1" value="14" />
+                    <output id="code-font-size-value" for="code-font-size-input">14 px</output>
+                  </span>
+                </label>
 
-              <label>
-                Editor cursor
-                <select id="cursor-type-input">
-                  <option value="bar">Bar</option>
-                  <option value="block">Block</option>
-                  <option value="underline">Underline</option>
-                </select>
-              </label>
+                <div class="schedule-grid">
+                  <label>
+                    Cursor
+                    <select id="cursor-type-input">
+                      <option value="bar">Bar</option>
+                      <option value="block">Block</option>
+                      <option value="underline">Underline</option>
+                    </select>
+                  </label>
 
-              <label>
-                Tag pills
-                <select id="tag-pill-style-input">
-                  <option value="soft">Soft</option>
-                  <option value="outline">Ticket</option>
-                  <option value="solid">Block</option>
-                  <option value="mono">Minimal</option>
-                </select>
-              </label>
+                  <label>
+                    Tag pills
+                    <select id="tag-pill-style-input">
+                      <option value="soft">Soft</option>
+                      <option value="outline">Ticket</option>
+                      <option value="solid">Block</option>
+                      <option value="mono">Minimal</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
 
-              <div class="settings-group" aria-label="Writing focus effects">
-                <h3>Writing focus</h3>
+              <div class="settings-group writing-group" aria-label="Writing">
+                <h3>Writing</h3>
                 <label class="toggle-row">
                   <input id="editor-line-numbers-input" type="checkbox" />
                   Show editor line numbers
@@ -329,15 +364,14 @@
                   <input id="focus-letter-effect-input" type="checkbox" />
                   Magnify latest typed letter
                 </label>
+                <label>
+                  On app start
+                  <select id="start-note-input">
+                    <option value="new">New blank note</option>
+                    <option value="last">Last used note</option>
+                  </select>
+                </label>
               </div>
-
-              <label>
-                On app start
-                <select id="start-note-input">
-                  <option value="new">New blank note</option>
-                  <option value="last">Last used note</option>
-                </select>
-              </label>
             </section>
 
             <section id="settings-section-shortcuts" class="settings-section" hidden>
@@ -509,7 +543,8 @@
     </section>
 
     <script src="/merge.js?v=1"></script>
-    <script src="/app.js?v=76"></script>
+    <script src="/sun.js?v=1"></script>
+    <script src="/app.js?v=77"></script>
     <script src="/console-typewriter.js?v=56"></script>
   </body>
 </html>

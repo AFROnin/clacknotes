@@ -69,6 +69,9 @@ class SettingsPatch(BaseModel):
     sunrise_theme: str | None = None
     sunset_time: str | None = None
     sunset_theme: str | None = None
+    theme_schedule: str | None = None
+    sun_latitude: str | float | None = None
+    sun_longitude: str | float | None = None
 
 
 class NoteInput(BaseModel):

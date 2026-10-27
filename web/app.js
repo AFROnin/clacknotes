@@ -91,6 +91,15 @@ const el = {
   adminSectionButton: document.querySelector("#admin-section-button"),
   usersSectionButton: document.querySelector("#users-section-button"),
   theme: document.querySelector("#theme-select"),
+  themeSchedule: document.querySelector("#theme-schedule-select"),
+  scheduleTimes: document.querySelector("#schedule-times"),
+  scheduleSun: document.querySelector("#schedule-sun"),
+  scheduleSystemNote: document.querySelector("#schedule-system-note"),
+  scheduleThemes: document.querySelector("#schedule-themes"),
+  sunLocateButton: document.querySelector("#sun-locate-button"),
+  sunLatitude: document.querySelector("#sun-latitude-input"),
+  sunLongitude: document.querySelector("#sun-longitude-input"),
+  sunTimesNote: document.querySelector("#sun-times-note"),
   sunriseTime: document.querySelector("#sunrise-time-input"),
   sunriseTheme: document.querySelector("#sunrise-theme-select"),
   sunsetTime: document.querySelector("#sunset-time-input"),
@@ -191,6 +200,9 @@ const SYNC_INTERVAL_MS = 5000;
 const NOTE_HOVER_DELAY_MS = 1200;
 const PROFILE_MENU_CLOSE_DELAY_MS = 160;
 const SCHEDULE_POLL_MS = 30000;
+// See THEME_SCHEDULES in db.py.
+const THEME_SCHEDULES = new Set(["off", "times", "sun", "system"]);
+const systemDarkQuery = window.matchMedia?.("(prefers-color-scheme: dark)") ?? null;
 const THEME_TRANSITION_MS = 2000;
 const THEME_OPTIONS = [
   ["plain", "plain"],
@@ -676,22 +688,27 @@ function renderUsers(users) {
     row.className = "admin-row user-row";
     row.dataset.userId = user.id;
     row.dataset.userEmail = user.email;
+    const isMe = state.user?.id === user.id;
+    const lastLogin = user.last_login_at ? `Last sign-in ${formatDateTime(user.last_login_at, "")}` : "Never signed in";
+    // <wbr> lets long addresses wrap before the @ instead of mid-word.
     row.innerHTML = `
-      <div>
-        <strong>${escapeHtml(user.email)}</strong>
-        <small>${escapeHtml(user.last_login_at || "Never logged in")}</small>
+      <div class="user-info">
+        <strong class="user-email">${escapeHtml(user.email).replace("@", "<wbr>@")}</strong>
+        <small>${escapeHtml(lastLogin)}${isMe ? " · you" : ""}</small>
       </div>
-      <select class="user-role">
-        <option value="user">user</option>
-        <option value="admin">admin</option>
-      </select>
-      <label class="admin-check"><input class="user-enabled" type="checkbox" /><span>enabled</span></label>
-      <button class="secondary-button save-user" type="button">Save</button>
-      <button class="danger-button delete-user" type="button">Delete</button>
+      <div class="user-controls">
+        <select class="user-role" aria-label="Role">
+          <option value="user">user</option>
+          <option value="admin">admin</option>
+        </select>
+        <label class="admin-check"><input class="user-enabled" type="checkbox" /><span>enabled</span></label>
+        <button class="secondary-button save-user" type="button">Save</button>
+        <button class="danger-button delete-user" type="button">Delete</button>
+      </div>
     `;
     row.querySelector(".user-role").value = user.role;
     row.querySelector(".user-enabled").checked = user.enabled;
-    row.querySelector(".delete-user").disabled = state.user?.id === user.id;
+    row.querySelector(".delete-user").disabled = isMe;
     el.userList.append(row);
   }
 }
@@ -717,7 +734,7 @@ function renderInvites(invites) {
     row.innerHTML = `
       <div>
         <strong>${escapeHtml(invite.role)}</strong>
-        <small>${used ? "Used" : expired ? "Expired" : "Active"} · expires ${escapeHtml(invite.expires_at)}</small>
+        <small>${used ? "Used" : expired ? "Expired" : "Active"} · expires ${escapeHtml(formatDateTime(invite.expires_at, ""))}</small>
       </div>
       ${action}
     `;
@@ -817,7 +834,17 @@ function normalizeSettings(settings) {
     sunrise_theme: normalizeTheme(settings.sunrise_theme, "plain"),
     sunset_time: normalizeTime(settings.sunset_time),
     sunset_theme: normalizeTheme(settings.sunset_theme, "nord-dark"),
+    theme_schedule: THEME_SCHEDULES.has(settings.theme_schedule) ? settings.theme_schedule : "off",
+    sun_latitude: normalizeCoordinate(settings.sun_latitude, 90),
+    sun_longitude: normalizeCoordinate(settings.sun_longitude, 180),
   };
+}
+
+// "" or a number within ±limit; accepts a decimal comma as typed on German keyboards.
+function normalizeCoordinate(value, limit) {
+  const text = String(value ?? "").trim().replace(",", ".");
+  const number = Number(text);
+  return text && Number.isFinite(number) && Math.abs(number) <= limit ? number.toFixed(2) : "";
 }
 
 function applyFontSize(fontSize) {
@@ -1488,23 +1515,49 @@ function localDateKey(date) {
 }
 
 function scheduleActive(settings) {
-  return Boolean(
-    settings &&
-      settings.sunrise_time &&
-      settings.sunset_time &&
-      settings.sunrise_time !== settings.sunset_time &&
-      THEME_VALUES.has(settings.sunrise_theme) &&
-      THEME_VALUES.has(settings.sunset_theme),
-  );
+  if (!settings || !THEME_VALUES.has(settings.sunrise_theme) || !THEME_VALUES.has(settings.sunset_theme)) return false;
+  switch (settings.theme_schedule) {
+    case "times":
+      return Boolean(settings.sunrise_time && settings.sunset_time && settings.sunrise_time !== settings.sunset_time);
+    case "sun":
+      return Boolean(settings.sun_latitude && settings.sun_longitude);
+    case "system":
+      return Boolean(systemDarkQuery);
+    default:
+      return false;
+  }
+}
+
+// Today's sunrise and sunset at the saved location (see web/sun.js).
+function todaysSunTimes(settings, date = new Date()) {
+  return sunTimes(date, Number(settings.sun_latitude), Number(settings.sun_longitude));
 }
 
 function scheduledThemeState(settings, date = new Date()) {
   if (!scheduleActive(settings)) return null;
 
-  const sunrise = minutesFromTime(settings.sunrise_time);
-  const sunset = minutesFromTime(settings.sunset_time);
-  const current = date.getHours() * 60 + date.getMinutes();
+  // Boundaries name the moment the scheduled theme last changed; a theme picked by hand
+  // stays until the next one.
+  if (settings.theme_schedule === "system") {
+    return systemDarkQuery.matches
+      ? { theme: settings.sunset_theme, boundary: "system-dark" }
+      : { theme: settings.sunrise_theme, boundary: "system-light" };
+  }
+
   const today = localDateKey(date);
+  let sunrise;
+  let sunset;
+  if (settings.theme_schedule === "sun") {
+    const sun = todaysSunTimes(settings, date);
+    if (sun.polar === "day") return { theme: settings.sunrise_theme, boundary: `${today}-polar-day` };
+    if (sun.polar === "night") return { theme: settings.sunset_theme, boundary: `${today}-polar-night` };
+    sunrise = sun.sunrise.getHours() * 60 + sun.sunrise.getMinutes();
+    sunset = sun.sunset.getHours() * 60 + sun.sunset.getMinutes();
+  } else {
+    sunrise = minutesFromTime(settings.sunrise_time);
+    sunset = minutesFromTime(settings.sunset_time);
+  }
+  const current = date.getHours() * 60 + date.getMinutes();
   const yesterdayDate = new Date(date);
   yesterdayDate.setDate(date.getDate() - 1);
   const yesterday = localDateKey(yesterdayDate);
@@ -1544,10 +1597,70 @@ function applySettingsControls(settings) {
   el.tagPillStyle.value = settings.tag_pill_style;
   el.focusLetterEffect.checked = settings.focus_letter_effect;
   el.startNote.value = settings.start_note;
-  el.sunriseTime.value = settings.sunrise_time;
+  el.themeSchedule.value = settings.theme_schedule;
   el.sunriseTheme.value = settings.sunrise_theme;
-  el.sunsetTime.value = settings.sunset_time;
   el.sunsetTheme.value = settings.sunset_theme;
+  // A save of one field returns while the next may be in use; don't overwrite what is being typed.
+  for (const [input, value] of [
+    [el.sunriseTime, settings.sunrise_time],
+    [el.sunsetTime, settings.sunset_time],
+    [el.sunLatitude, settings.sun_latitude],
+    [el.sunLongitude, settings.sun_longitude],
+  ]) {
+    if (document.activeElement !== input) input.value = value;
+  }
+  el.scheduleTimes.hidden = settings.theme_schedule !== "times";
+  el.scheduleSun.hidden = settings.theme_schedule !== "sun";
+  el.scheduleSystemNote.hidden = settings.theme_schedule !== "system";
+  el.scheduleThemes.hidden = settings.theme_schedule === "off";
+  renderSunTimesNote(settings);
+}
+
+function renderSunTimesNote(settings) {
+  if (!settings.sun_latitude || !settings.sun_longitude) {
+    el.sunTimesNote.textContent = "Set your location to switch at the real sunrise and sunset. Daylight saving time is taken care of.";
+    return;
+  }
+  const sun = todaysSunTimes(settings);
+  if (sun.polar === "day") {
+    el.sunTimesNote.textContent = "Today the sun doesn't set here, so the day theme stays.";
+  } else if (sun.polar === "night") {
+    el.sunTimesNote.textContent = "Today the sun doesn't rise here, so the night theme stays.";
+  } else {
+    const time = (date) => date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    el.sunTimesNote.textContent = `Today: sunrise ${time(sun.sunrise)} · sunset ${time(sun.sunset)}`;
+  }
+}
+
+// Fills latitude/longitude from the browser's location (asks for permission once).
+function locateForSunSchedule() {
+  if (!navigator.geolocation) {
+    el.sunTimesNote.textContent = "This browser can't share its location. Enter latitude and longitude instead.";
+    return;
+  }
+  el.sunLocateButton.disabled = true;
+  el.sunTimesNote.textContent = "Finding your location…";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      el.sunLocateButton.disabled = false;
+      saveSettings(
+        {
+          theme_schedule: "sun",
+          sun_latitude: position.coords.latitude.toFixed(2),
+          sun_longitude: position.coords.longitude.toFixed(2),
+        },
+        { scheduleChanged: true },
+      ).catch((error) => setError(error.message));
+    },
+    (error) => {
+      el.sunLocateButton.disabled = false;
+      el.sunTimesNote.textContent =
+        error.code === error.PERMISSION_DENIED
+          ? "Location access was blocked. Allow it in the browser's site settings, or enter latitude and longitude."
+          : "Couldn't get your location. Try again, or enter latitude and longitude.";
+    },
+    { enableHighAccuracy: false, timeout: 15000, maximumAge: 6 * 60 * 60 * 1000 },
+  );
 }
 
 function currentConfiguredTheme() {
@@ -1899,8 +2012,7 @@ function noteHoverCard() {
   return card;
 }
 
-function formatNoteDateTime(note) {
-  const value = note.updated_at || note.date || "";
+function formatDateTime(value, fallback) {
   const date = new Date(value);
   if (value && Number.isFinite(date.getTime())) {
     return new Intl.DateTimeFormat(undefined, {
@@ -1908,7 +2020,11 @@ function formatNoteDateTime(note) {
       timeStyle: "short",
     }).format(date);
   }
-  return value || "No date";
+  return value || fallback;
+}
+
+function formatNoteDateTime(note) {
+  return formatDateTime(note.updated_at || note.date || "", "No date");
 }
 
 function showNoteHoverCard(note, anchor) {
@@ -2815,10 +2931,13 @@ async function saveSettings(patch, { manualTheme = false, scheduleChanged = fals
 function saveScheduleSettings() {
   return saveSettings(
     {
+      theme_schedule: el.themeSchedule.value,
       sunrise_time: el.sunriseTime.value,
       sunrise_theme: el.sunriseTheme.value,
       sunset_time: el.sunsetTime.value,
       sunset_theme: el.sunsetTheme.value,
+      sun_latitude: normalizeCoordinate(el.sunLatitude.value, 90),
+      sun_longitude: normalizeCoordinate(el.sunLongitude.value, 180),
     },
     { scheduleChanged: true },
   );
@@ -3530,6 +3649,11 @@ el.sunriseTime.addEventListener("change", () => saveScheduleSettings().catch((er
 el.sunriseTheme.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
 el.sunsetTime.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
 el.sunsetTheme.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
+el.themeSchedule.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
+el.sunLatitude.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
+el.sunLongitude.addEventListener("change", () => saveScheduleSettings().catch((error) => setError(error.message)));
+el.sunLocateButton.addEventListener("click", locateForSunSchedule);
+systemDarkQuery?.addEventListener("change", () => applySchedule());
 el.setupForm.addEventListener("submit", (event) => {
   event.preventDefault();
   submitAuth("/api/auth/setup", el.setupEmail.value, el.setupPassword.value).catch((error) => setAuthError(error.message));
