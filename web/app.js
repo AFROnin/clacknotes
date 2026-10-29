@@ -1697,6 +1697,9 @@ function showSettingsSection(section) {
 }
 
 function markDirty() {
+  // No note loaded yet (starting up or signed out): the text came from the browser restoring the
+  // tab, not from typing, and saving it would add a copy of whatever note was open last time.
+  if (!state.selected) return;
   state.dirty = true;
   setStatus("Unsaved");
   scheduleAutosave();
@@ -2996,6 +2999,11 @@ async function persistNote({ force = false } = {}) {
   clearAutosaveTimer();
   // A clash with someone else's change waits for "Keep mine" / "Use theirs" before anything is saved.
   if (state.conflict) return state.selected;
+  // Every real edit happens on a loaded note (a new one has a client_id); see markDirty.
+  if (!state.selected) {
+    state.dirty = false;
+    return null;
+  }
   if (state.savePromise) {
     await state.savePromise;
     if (!state.dirty) return state.selected;
